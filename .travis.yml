@@ -1,11 +1,11 @@
 language: go
 go:
-  - 1.6.2
-  - 1.5.4
-  - 1.4.3
+  - master
+  - 1.7.4
 before_script:
   - go vet ./...
 install:
-  # Add Godeps dependencies to GOPATH and PATH
-  - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
-  - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
+  - wget https://raw.githubusercontent.com/pote/gpm/v1.4.0/bin/gpm -O ./gpm
+  - chmod +x ./gpm
+  - ./gpm install
+  - go install
