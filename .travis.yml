@@ -10,7 +10,7 @@ install:
   - ./gpm install
   - go install
 before_deploy:
-  - cp $GOPATH/bin/Burrow ./Burrow
+  - cp $GOPATH/bin/Burrow ./burrow-${TRAVIS_TAG}
   - tar -czvf burrow-${TRAVIS_TAG}.tar.gz Burrow
 deploy:
   provider: releases
