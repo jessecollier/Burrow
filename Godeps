@@ -4,3 +4,4 @@ github.com/cihub/seelog              92dc4b8b540607b8187cc2f95cac200211dcd745
 gopkg.in/gcfg.v1                     0ef1a8547f99b94fac9af5377dd72febba18f37c
 github.com/pborman/uuid              ca53cad383cad2479bbba7f7a1a05797ec1386e4
 github.com/DataDog/datadog-go/statsd 426ff2e0daab1153de70993f85773d91302d50a0
+github.com/linkedin/Burrow           1e4b0d844c9fd4b2864f1874e945f02178aa7898
