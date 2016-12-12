@@ -9,3 +9,14 @@ install:
   - chmod +x ./gpm
   - ./gpm install
   - go install
+before_deploy:
+  - cp $GOPATH/bin/Burrow ./Burrow
+  - tar -czvf burrow-${TRAVIS_TAG}.tar.gz Burrow
+deploy:
+  provider: releases
+  api_key: 
+    - secure: NivED9uF8VcANK5XRgGC31dXIASYv7/Nc1DrKZEZmOQzxMEWOrFq6oqGCmSQPkYspyMoWrbVUPMFkgoz7k1DgoOYBTiDtbFiuvgI0Ah7ECNX8znoCNGlWwGGZ9uEweBkkbXl83cNjvl7EsWoTPQUuIeKMgyUSAunyytKNrt404ulvrQ7eSIPnt1PKG9hyYiiWnsUQ3t4JsSKdV7wsToAqHarxsiTtp3FZxlWLeNBb45BYvs1P6ltRxmAROSdPXeLBcAghjxpkPOEy5tIa1HEXmE0kj1wa8U+/CR7lWiPUK1YvjWJV4FKOMcAqQCNJMs2v4RbiP488RVfER+zk2JuGcqCQPXzTIQai0CrUgAr4HAQhxHv+xdAyLCoiGoka3rZId24bAbFnoveoxb+bf196b7n/+W8/UoWDMbwESt7oD3ZvCN4ICu4FjBiNMdytadAPPFprCvLFR1o9OO3vg72AJSYoYgoKsSEwzSjwIAL9hWuhEewTPtNtMqTsC6PZAj2PjS5aQe2WpfDjyEwOfRdogk9eOoJoRqJ5lbFc6n9WMSkgxV77MDv/mGgigiqiriy6QAMp3pHTBbcJqCXNKexcLkSS/+yVcK0kWfH2gzTCSJq5DKWHRPt13nEPOkPmeo8bLu4GXhZ2ax6AXJovdOGe+nv+4sY2J0dZnVi8Ltk/KY=
+  file: burrow-${TRAVIS_TAG}.tar.gz
+  skip_cleanup: true
+  on:
+    tags: true
