@@ -15,7 +15,6 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/linkedin/Burrow/protocol"
-	"github.com/DataDog/datadog-go/statsd"
 	"regexp"
 	"sync"
 	"time"
@@ -29,7 +28,6 @@ type OffsetStorage struct {
 	offsets        map[string]*ClusterOffsets
 	groupBlacklist *regexp.Regexp
 	groupWhitelist *regexp.Regexp
-	statsd         *statsd.Client
 }
 
 type BrokerOffset struct {
@@ -106,21 +104,6 @@ func NewOffsetStorage(app *ApplicationContext) (*OffsetStorage, error) {
 			return nil, err
 		}
 		storage.groupWhitelist = re
-	}
-
-	if app.Config.General.StatsdHost != "" {
-		statsdhost := app.Config.General.StatsdHost
-		statsdport := "8125"
-
-		if app.Config.General.StatsdPort != "" {
-			statsdport = app.Config.General.StatsdPort
-		}
-
-		var err error 
-		storage.statsd, err = statsd.New(fmt.Sprintf("%s:%s", statsdhost, statsdport))
-		if err != nil {
-			log.Warn(err)
-		}
 	}
 
 	for cluster, _ := range app.Config.Kafka {
@@ -333,7 +316,11 @@ func (storage *OffsetStorage) addConsumerOffset(offset *protocol.PartitionOffset
 		tags = append(tags, fmt.Sprintf("topic:%s", offset.Topic))
 		tags = append(tags, fmt.Sprintf("Partition:%v", offset.Partition))
 		tags = append(tags, fmt.Sprintf("group:%s", offset.Group))
-		_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.consumerlag", float64(partitionLag), tags, 1)
+		storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.consumerlag", float64(partitionLag), tags, 1)
+
+		var tags2 []string
+		tags2 = append(tags2, fmt.Sprintf("group:%s", offset.Group))
+		storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.groups.attached", float64(1), tags2, 1)
 	}
 
 	// Advance the ring pointer

@@ -11,7 +11,9 @@ install:
   - go install
 before_deploy:
   - cp $GOPATH/bin/Burrow ./burrow-${TRAVIS_TAG}
-  - tar -czvf burrow-${TRAVIS_TAG}.tar.gz Burrow
+  - ls -alh $GOPATH/bin/Burrow 
+  - ls -alh ./
+  - tar -czvf burrow-${TRAVIS_TAG}.tar.gz ./burrow-${TRAVIS_TAG}
 deploy:
   provider: releases
   api_key: 

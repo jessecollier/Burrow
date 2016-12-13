@@ -80,7 +80,6 @@ type BurrowConfig struct {
 		StatsdHost     string   `gcfg:"statsd-host"`
 		StatsdPort     string   `gcfg:"statsd-port"`
 		EmitInterval   int64    `gcfg:"emit-interval"`
-		MetricsList    []string `gcfg:"enable-metric"`
 		LockPath       string   `gcfg:"lock-path"`
 	}
 
@@ -362,14 +361,10 @@ func ValidateConfig(app *ApplicationContext) error {
 
 	//Metrics
 	if app.Config.Metrics.EmitInterval == 0 {
-		app.Config.Metrics.EmitInterval == 10
-	}
-	if len(app.Config.Metrics.MetricsList) == 0 {
-		app.Config.Metrics.MetricsList == append('group_count')
-		app.Config.Metrics.MetricsList == append('topic_count')
+		app.Config.Metrics.EmitInterval = 10
 	}
 	if app.Config.Metrics.LockPath == "" {
-		app.Config.Metrics.LockPath == "/burrow/metricsreporter"
+		app.Config.Metrics.LockPath = "/burrow/metricsreporter"
 	}
 
 	// SMTP server config

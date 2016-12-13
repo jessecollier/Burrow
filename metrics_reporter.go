@@ -2,61 +2,49 @@ package main
 
 import (
 	log "github.com/cihub/seelog"
-	"github.com/linkedin/Burrow/protocol"
-	"github.com/Shopify/sarama"
-	"math/rand"
-	"net"
-	"net/http"
+	"github.com/DataDog/datadog-go/statsd"
 	"os"
-	"strings"
-	"sym"
 	"time"
 	"fmt"
 )
 
-type Statsd struct
-
 type MetricsReporter struct {
-	app            *Applicatiomontext
+	app            *ApplicationContext
 	statsd         *statsd.Client
 	emitInterval   int64
-	metricsList    []string
 	emitTicker     *time.Ticker
 	quitChan       chan struct{}
 }
 
-func NewMetricsReporter(app *Applicatiomontext) {
+func NewMetricsReporter(app *ApplicationContext) error {
 	
 	m := &MetricsReporter{
 		app:            app,
-		metricsList:    app.Config.Metrics.MetricsList,
 		emitInterval:   app.Config.Metrics.EmitInterval,
 		quitChan:       make(chan struct{}),
 	}
 
 
 	if app.Config.Metrics.StatsdHost != "" {
-		statsdhost := app.Config.General.StatsdHost
+		statsdhost := app.Config.Metrics.StatsdHost
 		statsdport := "8125"
 
-		if app.Config.General.StatsdPort != "" {
-			statsdport = app.Config.General.StatsdPort
+		if app.Config.Metrics.StatsdPort != "" {
+			statsdport = app.Config.Metrics.StatsdPort
 		}
 
 		var err error 
 		m.statsd, err = statsd.New(fmt.Sprintf("%s:%s", statsdhost, statsdport))
 		if err != nil {
-			log.Fatal(err)
+			log.Critical(err)
 		}
 	}
-
 	app.MetricsReporter = m
-
 	return nil
 }
 
 
-func StartMetrics(app *Applicatiomontext) {
+func StartMetrics(app *ApplicationContext) {
 	m := app.MetricsReporter
 	// Do not proceed until we get the Zookeeper lock
 	err := app.MetricsLock.Lock()
@@ -75,58 +63,32 @@ OUTERLOOP:
 		select {
 		case <-m.quitChan:
 			break OUTERLOOP
-		case <-m.refreshTicker.C:
-			m.emit()
+		case <-m.emitTicker.C:
+			log.Info("Starting emit for metrics")
+			m.emitTopicCount()
 		}
 	}
 }
 
-func StopMetrics(app *Applicatiomontext) {
+func StopMetrics(app *ApplicationContext) {
 	// Ignore errors on unlock - we're quitting anyways, and it might not be locked
 	app.MetricsLock.Unlock()
 	m := app.MetricsReporter
-	if m.refreshTicker != nil {
-		m.refreshTicker.Stop()
+	if m.emitTicker != nil {
+		m.emitTicker.Stop()
 	}
 	close(m.quitChan)
 	// TODO stop all ms
 }
 
-func (mr *MetricsReporter) emit() {
-	for _, metric := range mr.metricsList {
-		switch metric {
-			case "topic_count":
-				mr.emitTopicCount()
-			case "group_count":
-				mr.emitGroupCount()
-			default:
-				// Empty
-		}
-	}
-	return nil
-}
-
 func (mr *MetricsReporter) emitTopicCount() {
-	var topicMap map[string]int64
-	for _,cluster := range app.Clusters {
+	log.Info("Starting emit for metrics -- topic")
+	for _,cluster := range mr.app.Clusters {
 		var tags []string
-		for _, topic := range cluster.client.Topics() {
-			tags = append(tags, fmt.Sprintf('topic:%s',topic))
+		topics,_ := cluster.Client.client.Topics()
+		for _, topic := range topics {
+			tags = append(tags, fmt.Sprintf("topic:%s",topic))
 		}
 		_ = mr.statsd.Gauge("kafka.burrow.topic.count", float64(len(tags)), tags, 1)
 	}
-	return nil
-}
-
-func (mr *MetricsReporter) emitGroupCount() {
-	var topicMap map[string]int64
-	for name,cluster := range app.Clusters {
-		broker := cluster.client.any()
-		groups := broker.ListGroups()
-
-		for group,consumer := range groups {
-			log.Warnf("My cluster:k:v are %s:%s:%s", name, group, consumer)
-		}
-	}
-	return nil
 }
