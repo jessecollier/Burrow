@@ -64,7 +64,6 @@ OUTERLOOP:
 		case <-m.quitChan:
 			break OUTERLOOP
 		case <-m.emitTicker.C:
-			log.Info("Starting emit for metrics")
 			m.emitTopicCount()
 		}
 	}
@@ -82,13 +81,11 @@ func StopMetrics(app *ApplicationContext) {
 }
 
 func (mr *MetricsReporter) emitTopicCount() {
-	log.Info("Starting emit for metrics -- topic")
 	for _,cluster := range mr.app.Clusters {
-		var tags []string
 		topics,_ := cluster.Client.client.Topics()
 		for _, topic := range topics {
-			tags = append(tags, fmt.Sprintf("topic:%s",topic))
+			tags := []string{ fmt.Sprintf("topic:%s",topic) }
+			_ = mr.statsd.Gauge("kafka.burrow.topic.count", float64(1), tags, 1)
 		}
-		_ = mr.statsd.Gauge("kafka.burrow.topic.count", float64(len(tags)), tags, 1)
 	}
 }
