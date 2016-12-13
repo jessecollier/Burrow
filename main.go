@@ -80,6 +80,22 @@ func burrowMain() int {
 	}
 	defer zkconn.Close()
 
+	// Begin Metrics Reporter
+	// ~~~~~~~~~~~~~~~~
+	log.Info("Starting Metrics Reporter")
+	// Set up the Zookeeper lock for metrics reporter
+	appContext.MetricsLock = zk.NewLock(zkconn, appContext.Config.Metrics.LockPath, zk.WorldACL(zk.PermAll))
+	// CreateAppMetricsReporter
+	err = NewMetricsReporter(appContext)
+	if err != nil {
+		// Error was already logged
+		return 1
+	}
+
+	// Metrics are started in a goroutine if we get the ZK lock
+	go StartMetrics(appContext)
+	defer StopMetrics(appContext)
+
 	// Start an offsets storage module
 	log.Info("Starting Offsets Storage module")
 	appContext.Storage, err = NewOffsetStorage(appContext)
@@ -134,6 +150,8 @@ func burrowMain() int {
 		appContext.Storms[cluster] = &StormCluster{Storm: stormClient}
 	}
 
+	log.Info("Starting Notifiers")
+
 	// Set up the Zookeeper lock for notification
 	appContext.NotifierLock = zk.NewLock(zkconn, appContext.Config.Zookeeper.LockPath, zk.WorldACL(zk.PermAll))
 
@@ -148,28 +166,9 @@ func burrowMain() int {
 	go StartNotifiers(appContext)
 	defer StopNotifiers(appContext)
 
-	
-
 	// Register signal handlers for exiting
 	exitChannel := make(chan os.Signal, 1)
 	signal.Notify(exitChannel, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGSTOP, syscall.SIGTERM)
-
-
-	// Begin Metrics Reporter
-	// ~~~~~~~~~~~~~~~~
-
-	// Set up the Zookeeper lock for metrics reporter
-	appContext.MetricsLock = zk.NewLock(zkconn, appContext.Config.Metrics.LockPath, zk.WorldACL(zk.PermAll))
-	// CreateAppMetricsReporter
-	err = NewMetricsReporter(appContext)
-	if err != nil {
-		// Error was already logged
-		return 1
-	}
-	
-	// Metrics are started in a goroutine if we get the ZK lock
-	go StartMetrics(appContext)
-	defer StopMetrics(appContext)
 
 	// Wait until we're told to exit
 	<-exitChannel

@@ -310,18 +310,17 @@ func (storage *OffsetStorage) addConsumerOffset(offset *protocol.PartitionOffset
 		offset.Cluster, offset.Topic, offset.Partition, offset.Group, offset.Timestamp, offset.Offset,
 		partitionLag)
 
-	if storage.app.MetricsReporter.statsd != nil {
-		var tags []string
-		tags = append(tags, fmt.Sprintf("cluster:%s", offset.Cluster))
-		tags = append(tags, fmt.Sprintf("topic:%s", offset.Topic))
-		tags = append(tags, fmt.Sprintf("Partition:%v", offset.Partition))
-		tags = append(tags, fmt.Sprintf("group:%s", offset.Group))
-		storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.consumerlag", float64(partitionLag), tags, 1)
+	
+	var tags []string
+	tags = append(tags, fmt.Sprintf("cluster:%s", offset.Cluster))
+	tags = append(tags, fmt.Sprintf("topic:%s", offset.Topic))
+	tags = append(tags, fmt.Sprintf("Partition:%v", offset.Partition))
+	tags = append(tags, fmt.Sprintf("group:%s", offset.Group))
+	_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.consumerlag", float64(partitionLag), tags, 1)
 
-		var tags2 []string
-		tags2 = append(tags2, fmt.Sprintf("group:%s", offset.Group))
-		storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.groups.attached", float64(1), tags2, 1)
-	}
+	var tags2 []string
+	tags2 = append(tags2, fmt.Sprintf("group:%s", offset.Group))
+	_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.groups.attached", float64(1), tags2, 1)
 
 	// Advance the ring pointer
 	consumerTopicMap[offset.Partition] = consumerTopicMap[offset.Partition].Next()
