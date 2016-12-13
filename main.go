@@ -32,13 +32,15 @@ type StormCluster struct {
 }
 
 type ApplicationContext struct {
-	Config       *BurrowConfig
-	Storage      *OffsetStorage
-	Clusters     map[string]*KafkaCluster
-	Storms       map[string]*StormCluster
-	Server       *HttpServer
-	NotifyCenter *NotifyCenter
-	NotifierLock *zk.Lock
+	Config           *BurrowConfig
+	Storage          *OffsetStorage
+	Clusters         map[string]*KafkaCluster
+	Storms           map[string]*StormCluster
+	Server           *HttpServer
+	NotifyCenter     *NotifyCenter
+	NotifierLock     *zk.Lock
+	MetricsReporter  *MetricsReporter
+	MetricsLock      *zk.Lock
 }
 
 // Why two mains? Golang doesn't let main() return, which means defers will not run.
@@ -146,9 +148,28 @@ func burrowMain() int {
 	go StartNotifiers(appContext)
 	defer StopNotifiers(appContext)
 
+	
+
 	// Register signal handlers for exiting
 	exitChannel := make(chan os.Signal, 1)
 	signal.Notify(exitChannel, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGSTOP, syscall.SIGTERM)
+
+
+	// Begin Metrics Reporter
+	// ~~~~~~~~~~~~~~~~
+
+	// Set up the Zookeeper lock for metrics reporter
+	appContext.MetricsLock = zk.NewLock(zkconn, appContext.Config.Metrics.LockPath, zk.WorldACL(zk.PermAll))
+	// CreateAppMetricsReporter
+	err = NewMetricsReporter(appContext)
+	if err != nil {
+		// Error was already logged
+		return 1
+	}
+	
+	// Metrics are started in a goroutine if we get the ZK lock
+	go StartMetrics(appContext)
+	defer StopMetrics(appContext)
 
 	// Wait until we're told to exit
 	<-exitChannel

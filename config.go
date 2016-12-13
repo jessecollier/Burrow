@@ -37,8 +37,6 @@ type BurrowConfig struct {
 		ClientID       string `gcfg:"client-id"`
 		GroupBlacklist string `gcfg:"group-blacklist"`
 		GroupWhitelist string `gcfg:"group-whitelist"`
-		StatsdHost     string `gcfg:"statsd-host"`
-		StatsdPort     string `gcfg:"statsd-port"`
 	}
 	Zookeeper struct {
 		Hosts    []string `gcfg:"hostname"`
@@ -78,6 +76,14 @@ type BurrowConfig struct {
 		Port   int  `gcfg:"port"`
 		Listen []string `gcfg:"listen"`
 	}
+	Metrics struct { 
+		StatsdHost     string   `gcfg:"statsd-host"`
+		StatsdPort     string   `gcfg:"statsd-port"`
+		EmitInterval   int64    `gcfg:"emit-interval"`
+		MetricsList    []string `gcfg:"enable-metric"`
+		LockPath       string   `gcfg:"lock-path"`
+	}
+
 	Notify struct {
 		Interval int64 `gcfg:"interval"`
 	}
@@ -352,6 +358,18 @@ func ValidateConfig(app *ApplicationContext) error {
 	// Notify
 	if app.Config.Notify.Interval == 0 {
 		app.Config.Notify.Interval = 10
+	}
+
+	//Metrics
+	if app.Config.Metrics.EmitInterval == 0 {
+		app.Config.Metrics.EmitInterval == 10
+	}
+	if len(app.Config.Metrics.MetricsList) == 0 {
+		app.Config.Metrics.MetricsList == append('group_count')
+		app.Config.Metrics.MetricsList == append('topic_count')
+	}
+	if app.Config.Metrics.LockPath == "" {
+		app.Config.Metrics.LockPath == "/burrow/metricsreporter"
 	}
 
 	// SMTP server config
