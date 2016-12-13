@@ -311,16 +311,17 @@ func (storage *OffsetStorage) addConsumerOffset(offset *protocol.PartitionOffset
 		partitionLag)
 
 	
-	var tags []string
+	tags := make([]string, 4)
 	tags = append(tags, fmt.Sprintf("cluster:%s", offset.Cluster))
 	tags = append(tags, fmt.Sprintf("topic:%s", offset.Topic))
 	tags = append(tags, fmt.Sprintf("Partition:%v", offset.Partition))
 	tags = append(tags, fmt.Sprintf("group:%s", offset.Group))
 	_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.consumerlag", float64(partitionLag), tags, 1)
 
-	var tags2 []string
-	tags2 = append(tags2, fmt.Sprintf("group:%s", offset.Group))
-	_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.groups.attached", float64(1), tags2, 1)
+	tags = make([]string, 2)
+	tags =  append(tags, fmt.Sprintf("group:%s", offset.Group))
+	tags =  append(tags, fmt.Sprintf("topic:%s", offset.Topic))
+	_ = storage.app.MetricsReporter.statsd.Gauge("kafka.burrow.groups.attached", float64(1), tags, 1)
 
 	// Advance the ring pointer
 	consumerTopicMap[offset.Partition] = consumerTopicMap[offset.Partition].Next()
